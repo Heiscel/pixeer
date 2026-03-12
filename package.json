@@ -1,0 +1,59 @@
+{
+  "name": "pixeer",
+  "version": "0.0.1",
+  "description": "Transport-agnostic DOM understanding and screen capture for AI agents",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup --config tsup.config.ts",
+    "build:prod": "NODE_ENV=production pnpm build",
+    "dev": "NODE_ENV=development tsup --watch --config tsup.config.ts",
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf dist .turbo",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "dom-accessibility-api": "^0.7.0",
+    "dom-to-semantic-markdown": "^1.4.1",
+    "resq": "^1.11.0"
+  },
+  "peerDependencies": {
+    "livekit-client": ">=2.9.0"
+  },
+  "peerDependenciesMeta": {
+    "livekit-client": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^25.0.3",
+    "livekit-client": "^2.17.1",
+    "happy-dom": "^18.0.1",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "vitest": "^3.0.0"
+  },
+  "keywords": [
+    "dom",
+    "screen-capture",
+    "ai-agent",
+    "accessibility",
+    "livekit",
+    "rpc"
+  ]
+}
