@@ -62,3 +62,14 @@ export interface PixeerBridge {
 
 /** Direction for scrolling */
 export type ScrollDirection = 'up' | 'down' | 'left' | 'right';
+
+/**
+ * The caller-side transport interface — implement this to connect PixeerAgent
+ * to any messaging layer (postMessage, BroadcastChannel, WebSocket, etc.).
+ */
+export interface PixeerCallerTransport {
+  /** Send a method call and await the response payload string. */
+  call(method: string, payload: unknown): Promise<string>;
+  /** Tear down listeners and reject any in-flight calls. */
+  dispose(): void;
+}
