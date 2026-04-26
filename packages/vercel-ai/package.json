@@ -1,0 +1,40 @@
+{
+  "name": "@pixeer/vercel-ai",
+  "version": "0.0.1",
+  "description": "Vercel AI SDK tool adapter for Pixeer — expose browser DOM tools to any LLM",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsdown --config tsdown.config.ts",
+    "dev": "tsdown --watch --config tsdown.config.ts",
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf dist .turbo",
+    "test": "vitest run"
+  },
+  "peerDependencies": {
+    "ai": ">=4.0.0",
+    "pixeer": ">=0.0.1",
+    "zod": ">=3.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.0.3",
+    "ai": "^4.3.16",
+    "pixeer": "workspace:*",
+    "tsdown": "^0.21.10",
+    "typescript": "^5.9.3",
+    "vitest": "^3.0.0",
+    "zod": "^3.24.0"
+  },
+  "keywords": ["pixeer", "vercel-ai", "ai-sdk", "browser-agent", "tools"]
+}
