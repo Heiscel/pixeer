@@ -1,9 +1,9 @@
 # Pixeer
 
-[![CI](https://github.com/debowd/pixeer/actions/workflows/ci.yml/badge.svg)](https://github.com/debowd/pixeer/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/debowd/pixeer/branch/main/graph/badge.svg)](https://codecov.io/gh/debowd/pixeer)
+[![CI](https://github.com/Heiscel/pixeer/actions/workflows/ci.yml/badge.svg)](https://github.com/Heiscel/pixeer/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/Heiscel/pixeer/branch/main/graph/badge.svg)](https://codecov.io/gh/Heiscel/pixeer)
 [![npm](https://img.shields.io/npm/v/pixeer)](https://www.npmjs.com/package/pixeer)
-[![License](https://img.shields.io/github/license/debowd/pixeer)](LICENSE)
+[![License](https://img.shields.io/github/license/Heiscel/pixeer)](LICENSE)
 
 **9KB in-browser AI agent runtime.** Give your AI agent eyes and hands inside the user's real browser tab — over any transport, with zero infrastructure.
 

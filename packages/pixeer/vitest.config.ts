@@ -13,6 +13,7 @@ export default defineConfig({
         'src/types.ts',
         'src/screen-capture.ts',
         'src/telemetry.ts',
+        'src/webmcp-bridge.ts',
         'src/transports/**',
       ],
       thresholds: {
