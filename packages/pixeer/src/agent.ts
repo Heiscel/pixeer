@@ -4,6 +4,7 @@ import type {
   ComponentStateResult,
   ScrollDirection,
 } from './types';
+import type { DeltaResult } from './mutation-tracker';
 
 export interface PixeerAgentOptions {
   /** Per-call timeout in ms. Overrides the transport default when set. */
@@ -135,6 +136,26 @@ export class PixeerAgent {
       componentName,
     });
     return res.state;
+  }
+
+  /**
+   * Pull only what changed on the page since the last call — far cheaper than
+   * `getContext()` for incremental updates after an action.
+   *
+   * Requires `enableMutationTracker: true` on the bridge. If `needsFullSnapshot`
+   * is true, fall back to `getContext()` — too many mutations occurred to diff.
+   *
+   * ```ts
+   * const { deltas, needsFullSnapshot } = await agent.getDelta();
+   * if (needsFullSnapshot) {
+   *   const { context } = await agent.getContext();
+   * } else {
+   *   for (const delta of deltas) { ... }
+   * }
+   * ```
+   */
+  async getDelta(): Promise<DeltaResult> {
+    return this.call<DeltaResult>('dom.getDelta');
   }
 
   /**

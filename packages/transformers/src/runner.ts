@@ -193,6 +193,8 @@ export async function createPixeerRunner(
         };
       case 'pixeer_get_component_state':
         return { state: await agent.getComponentState(args.componentName as string) };
+      case 'pixeer_get_delta':
+        return agent.getDelta();
       default:
         throw new Error(`Unknown tool: ${name}`);
     }

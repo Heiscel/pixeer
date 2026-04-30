@@ -225,3 +225,162 @@ describe('createPixeerBridge analytics integration', () => {
     expect(successHandler.mock.calls[0][0].method).toBe('dom.click');
   });
 });
+
+describe('PixeerAnalytics — PixeerAnalyticsOptions constructor', () => {
+  it('accepts options object with sessionId', () => {
+    const a = new PixeerAnalytics({ sessionId: 'opts-session' });
+    expect(a.sessionId).toBe('opts-session');
+  });
+
+  it('generates sessionId when not provided in options', () => {
+    const a = new PixeerAnalytics({});
+    expect(a.sessionId).toMatch(/^px_/);
+  });
+});
+
+describe('PixeerAnalytics — circular event buffer', () => {
+  it('drops oldest event when maxHistory is reached', () => {
+    const a = new PixeerAnalytics({ maxHistory: 3 });
+    for (let i = 0; i < 4; i++) {
+      a.emit({ type: 'action:success', method: `m${i}`, sessionId: 'x', timestamp: i });
+    }
+    const history = a.getHistory();
+    expect(history).toHaveLength(3);
+    expect(history[0].method).toBe('m1');
+    expect(history[2].method).toBe('m3');
+  });
+
+  it('attaches bufferOverflow meta flag on the event after overflow', () => {
+    const a = new PixeerAnalytics({ maxHistory: 2 });
+    a.emit({ type: 'action:success', method: 'm0', sessionId: 'x', timestamp: 0 });
+    a.emit({ type: 'action:success', method: 'm1', sessionId: 'x', timestamp: 1 });
+    // This emit triggers overflow
+    a.emit({ type: 'action:success', method: 'm2', sessionId: 'x', timestamp: 2 });
+
+    const history = a.getHistory();
+    const overflowEvent = history.find((e) => e.meta?.bufferOverflow === true);
+    expect(overflowEvent).toBeDefined();
+    expect(overflowEvent!.method).toBe('m2');
+  });
+
+  it('only sets bufferOverflow once per overflow', () => {
+    const a = new PixeerAnalytics({ maxHistory: 1 });
+    a.emit({ type: 'action:success', method: 'm0', sessionId: 'x', timestamp: 0 });
+    a.emit({ type: 'action:success', method: 'm1', sessionId: 'x', timestamp: 1 });
+    a.emit({ type: 'action:success', method: 'm2', sessionId: 'x', timestamp: 2 });
+
+    const history = a.getHistory();
+    const overflows = history.filter((e) => e.meta?.bufferOverflow === true);
+    expect(overflows.length).toBeLessThanOrEqual(1);
+  });
+});
+
+describe('PixeerAnalytics — trace', () => {
+  let a: PixeerAnalytics;
+
+  beforeEach(() => {
+    a = new PixeerAnalytics('trace-session');
+  });
+
+  it('trace() records events retrievable via getTrace()', () => {
+    a.trace({ type: 'tool:call', traceId: 'tr1', spanId: 'sp1', name: 'dom.click', timestamp: 100, input: { name: 'Submit' } });
+    const trace = a.getTrace();
+    expect(trace).toHaveLength(1);
+    expect(trace[0].name).toBe('dom.click');
+    expect(trace[0].sessionId).toBe('trace-session');
+  });
+
+  it('trace() attaches sessionId automatically', () => {
+    a.trace({ type: 'llm:call', traceId: 't', spanId: 's', name: 'gpt', timestamp: 0 });
+    expect(a.getTrace()[0].sessionId).toBe('trace-session');
+  });
+
+  it('getTrace() returns a copy', () => {
+    a.trace({ type: 'decision', traceId: 't', spanId: 's', name: 'd', timestamp: 0 });
+    const t1 = a.getTrace();
+    t1.pop();
+    expect(a.getTrace()).toHaveLength(1);
+  });
+
+  it('flushTrace() returns traces and clears them', () => {
+    a.trace({ type: 'navigate', traceId: 't', spanId: 's', name: 'nav', timestamp: 0 });
+    const flushed = a.flushTrace();
+    expect(flushed).toHaveLength(1);
+    expect(a.getTrace()).toHaveLength(0);
+  });
+
+  it('drops oldest trace when maxTrace is reached', () => {
+    const b = new PixeerAnalytics({ maxTrace: 2 });
+    b.trace({ type: 'tool:call', traceId: 't', spanId: 's1', name: 'a', timestamp: 0 });
+    b.trace({ type: 'tool:call', traceId: 't', spanId: 's2', name: 'b', timestamp: 1 });
+    b.trace({ type: 'tool:call', traceId: 't', spanId: 's3', name: 'c', timestamp: 2 });
+    const trace = b.getTrace();
+    expect(trace).toHaveLength(2);
+    expect(trace[0].name).toBe('b');
+  });
+
+  it('clear() also clears traces', () => {
+    a.trace({ type: 'error', traceId: 't', spanId: 's', name: 'e', timestamp: 0 });
+    a.clear();
+    expect(a.getTrace()).toHaveLength(0);
+  });
+});
+
+describe('PixeerAnalytics — exportOTLP', () => {
+  it('returns a valid OTLP resourceSpans structure', () => {
+    const a = new PixeerAnalytics('otlp-session');
+    a.trace({ type: 'tool:call', traceId: 'abc123', spanId: 'def456', name: 'dom.click', timestamp: 1_000, durationMs: 50, input: { name: 'Submit' } });
+
+    const otlp = a.exportOTLP();
+    expect(otlp.resourceSpans).toHaveLength(1);
+
+    const rs = otlp.resourceSpans[0];
+    expect(rs.resource.attributes.some((a) => a.key === 'service.name')).toBe(true);
+
+    const spans = rs.scopeSpans[0].spans;
+    expect(spans).toHaveLength(1);
+    expect(spans[0].traceId).toBe('abc123');
+    expect(spans[0].spanId).toBe('def456');
+    expect(spans[0].name).toBe('dom.click');
+    expect(spans[0].kind).toBe(3);
+    expect(spans[0].status.code).toBe(1);
+  });
+
+  it('sets error status code when trace event has error', () => {
+    const a = new PixeerAnalytics('s');
+    a.trace({ type: 'error', traceId: 't', spanId: 's', name: 'fail', timestamp: 0, error: 'boom' });
+    const span = a.exportOTLP().resourceSpans[0].scopeSpans[0].spans[0];
+    expect(span.status.code).toBe(2);
+  });
+
+  it('includes parentSpanId when set', () => {
+    const a = new PixeerAnalytics('s');
+    a.trace({ type: 'tool:result', traceId: 't', spanId: 's2', parentSpanId: 's1', name: 'result', timestamp: 0 });
+    const span = a.exportOTLP().resourceSpans[0].scopeSpans[0].spans[0];
+    expect(span.parentSpanId).toBe('s1');
+  });
+
+  it('omits parentSpanId when not set', () => {
+    const a = new PixeerAnalytics('s');
+    a.trace({ type: 'llm:response', traceId: 't', spanId: 's', name: 'resp', timestamp: 0 });
+    const span = a.exportOTLP().resourceSpans[0].scopeSpans[0].spans[0];
+    expect('parentSpanId' in span).toBe(false);
+  });
+
+  it('converts timestamp and durationMs to nanosecond strings', () => {
+    const a = new PixeerAnalytics('s');
+    a.trace({ type: 'tool:call', traceId: 't', spanId: 's', name: 'x', timestamp: 1000, durationMs: 200 });
+    const span = a.exportOTLP().resourceSpans[0].scopeSpans[0].spans[0];
+    expect(span.startTimeUnixNano).toBe('1000000000');
+    expect(span.endTimeUnixNano).toBe('1200000000');
+  });
+
+  it('includes input/output/meta as OTLP attributes', () => {
+    const a = new PixeerAnalytics('s');
+    a.trace({ type: 'tool:call', traceId: 't', spanId: 's', name: 'x', timestamp: 0, input: { q: 1 }, output: { r: 2 }, meta: { foo: 'bar' } });
+    const attrs = a.exportOTLP().resourceSpans[0].scopeSpans[0].spans[0].attributes;
+    expect(attrs.some((a) => a.key === 'pixeer.input')).toBe(true);
+    expect(attrs.some((a) => a.key === 'pixeer.output')).toBe(true);
+    expect(attrs.some((a) => a.key === 'pixeer.meta.foo')).toBe(true);
+  });
+});

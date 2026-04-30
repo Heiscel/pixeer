@@ -108,6 +108,15 @@ export function createPixeerTools(agent: PixeerAgent, options: PixeerToolsOption
       }),
     }),
 
+    get_delta: tool({
+      description:
+        'Get only what changed on the page since the last snapshot — much cheaper than get_page_context ' +
+        'for incremental updates after an action. If needsFullSnapshot is true, call get_page_context instead. ' +
+        'Requires enableMutationTracker: true on the bridge.',
+      parameters: z.object({}),
+      execute: async () => agent.getDelta(),
+    }),
+
     capture_screen: tool({
       description:
         'Capture the current page as a base64 JPEG image. ' +

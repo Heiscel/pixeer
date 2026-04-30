@@ -155,6 +155,17 @@ export const PIXEER_TOOLS: ToolDefinition[] = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'pixeer_get_delta',
+      description:
+        'Get only what changed on the page since the last snapshot — much cheaper than pixeer_get_page_context ' +
+        'for incremental updates after an action. If needsFullSnapshot is true, call pixeer_get_page_context instead. ' +
+        'Requires enableMutationTracker: true on the bridge.',
+      parameters: { type: 'object', properties: {}, required: [] },
+    },
+  },
 ];
 
 export interface PixeerToolsFilterOptions {
